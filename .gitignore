@@ -1,0 +1,8 @@
+node_modules
+*.env
+*.key
+client_secret.json
+client_token.json
+tmp
+temp
+output.mp4

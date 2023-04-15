@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "sourceMap": true,
+        "outDir": "_build",
+        "target": "ES2020",
+        "module": "commonjs",
+        "strict": false,
+        "lib": ["esnext", "dom" ],
+        "esModuleInterop": true,
+        "baseUrl": ".",
+        "paths": {
+            "@app": ["src/Application"],
+            "@app/*": [ "src/*" ],
+        }
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "_build", "prisma", "tests"],
+    "watchOptions": {
+        "watchFile": "useFsEvents",
+        "watchDirectory": "useFsEvents",
+        "excludeDirectories": ["**/node_modules", "_build", "prisma" ],
+    }
+}
