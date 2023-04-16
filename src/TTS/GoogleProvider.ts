@@ -1,14 +1,18 @@
-import { GoogleClient } from "@app/Google";
+import { GoogleClient, Voice, VoiceSamples } from "@app/Google";
 import { TTSProvider, TTSResponse } from ".";
 import { readFile, writeFile } from "fs/promises";
+
+
 
 export class GoogleProvider implements TTSProvider {
     
     private client : GoogleClient;
     public useExistingFilesWhenAvailable : boolean = false;
+    public voice : Voice|null
 
-    constructor(client : GoogleClient) {
+    constructor(client : GoogleClient, voice? : Voice) {
         this.client = client;
+        this.voice = voice;
     }
 
     async convert(text: string, fileName?: string): Promise<TTSResponse> {
@@ -27,8 +31,8 @@ export class GoogleProvider implements TTSProvider {
             }
         } 
 
-
-        const buffer = await this.client.synthesizeSpeech(text);
+        const voice = this.voice ?? VoiceSamples[Math.floor(Math.random() * VoiceSamples.length)];
+        const buffer = await this.client.synthesizeSpeech(text, voice);
         if (fileName) 
             await writeFile(fileName, buffer);            
 

@@ -1,12 +1,9 @@
 import DOTENV from 'dotenv';
-import { HTMLImageGenerator, ImageTiming, centerCropFit, compositeNarration, compositeSlideshow, duration } from './Video';
-import { YOUTUBE_SHORT_VIDEO_HEIGHT, YOUTUBE_SHORT_VIDEO_WIDTH, createGoogleClient } from './Google';
-import { mkdir, rm, unlink } from 'fs/promises';
+import { createGoogleClient } from './Google';
 import { topArticles, topComments } from './Reddit';
 import { GoogleProvider } from './TTS/GoogleProvider';
 import { PexelProvider } from './Video/Stock/PexelProvider';
 import { Generator } from './Generator';
-import { title } from 'process';
 DOTENV.config();
 
 const OUTPUT = 'output.mp4';
@@ -34,9 +31,9 @@ const PEXELS_KEY = process.env.PEXELS_KEY;
     const article = articles[articleIndex];
     const allComments = (await topComments(article))
                         .filter(comment => !comment.collapsed)
-                        .map(comment => comment.body);
+                        .map(comment => replaceLinks(comment.body));
     
-    const messages = trimToEstimatedTime([article.title, ...allComments], 50, 16);
+    const messages = trimToEstimatedTime([article.title, ...allComments], 50, 12);
 
     console.log(`Article #${articleIndex}`, article);
 
@@ -73,4 +70,8 @@ function trimToEstimatedTime(comments : string[], duration : number, charPerSeco
         currentDuration += estDuration;
     }
     return results;
+}
+
+function replaceLinks(str : string, replace : string = '') : string {
+    return str.replace(/(?:https?|ftp):\/\/[\n\S]+/g, replace);
 }

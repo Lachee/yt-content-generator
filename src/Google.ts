@@ -3,8 +3,31 @@ import { OAuth2Client } from 'google-auth-library';
 import { google, youtube_v3 } from 'googleapis';
 import readline from 'readline';
 
-export const YOUTUBE_SHORT_VIDEO_WIDTH = 1080;
-export const YOUTUBE_SHORT_VIDEO_HEIGHT = 1920;
+export type Voice = { languageCode: string, ssmlGender: 'MALE' | 'FEMALE', name?: string }
+export const VoiceSamples : Voice[] = [
+    { languageCode: 'en-AU', ssmlGender: 'FEMALE', name: 'en-AU-Neural2-A' },
+    { languageCode: 'en-AU', ssmlGender: 'MALE', name: 'en-AU-Neural2-B' },
+    { languageCode: 'en-AU', ssmlGender: 'FEMALE', name: 'en-AU-Neural2-C' },
+    { languageCode: 'en-AU', ssmlGender: 'MALE', name: 'en-AU-Neural2-D' },
+    
+    { languageCode: 'en-IN', ssmlGender: 'FEMALE', name: 'en-IN-Standard-A' },
+    { languageCode: 'en-IN', ssmlGender: 'MALE', name: 'en-IN-Standard-B' },
+    { languageCode: 'en-IN', ssmlGender: 'MALE', name: 'en-IN-Standard-C' },
+    { languageCode: 'en-IN', ssmlGender: 'FEMALE', name: 'en-IN-Standard-D' },
+        
+    { languageCode: 'en-GB', ssmlGender: 'FEMALE', name: 'en-GB-Neural2-A' },
+    { languageCode: 'en-GB', ssmlGender: 'MALE', name: 'en-GB-Neural2-B' },
+    { languageCode: 'en-GB', ssmlGender: 'FEMALE', name: 'en-GB-Neural2-C' },
+    { languageCode: 'en-GB', ssmlGender: 'MALE', name: 'en-GB-Neural2-D' },
+    { languageCode: 'en-GB', ssmlGender: 'FEMALE', name: 'en-GB-Neural2-F' },
+        
+    { languageCode: 'en-US', ssmlGender: 'MALE', name: 'en-US-Neural2-A' },
+    { languageCode: 'en-US', ssmlGender: 'FEMALE', name: 'en-US-Neural2-C' },
+    { languageCode: 'en-US', ssmlGender: 'MALE', name: 'en-US-Neural2-D' },
+    { languageCode: 'en-US', ssmlGender: 'FEMALE', name: 'en-US-Neural2-E' },
+    { languageCode: 'en-US', ssmlGender: 'FEMALE', name: 'en-US-Neural2-F' },
+    { languageCode: 'en-US', ssmlGender: 'FEMALE', name: 'en-US-Neural2-G' },
+]
 
 /** Authorises with google */
 export async function createGoogleClient(apiKey : string, clientSecretJsonPath : string, tokenCachePath : string, scopes : string[]) : Promise<GoogleClient> { 
@@ -81,13 +104,13 @@ export class GoogleClient {
         return null;
     }
 
-    async synthesizeSpeech(text : string) : Promise<Buffer>  {
+    async synthesizeSpeech(text : string, voice : Voice) : Promise<Buffer>  {
         const service = google.texttospeech('v1');
         const response = await service.text.synthesize({
             auth: this.key,
             requestBody: {
                 input: { text: text },
-                voice: { languageCode: 'en-AU', ssmlGender: 'FEMALE' },
+                voice: voice,
                 audioConfig: { audioEncoding: 'MP3' }
             }
         });
