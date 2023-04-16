@@ -5,7 +5,7 @@ export interface StockProvider {
      * @param temporaryFile the file to temporarily store the buffered content into. If not provided, the content will not be saved.
      * @return the filepath of the saved audio
      */
-    download(query : string, minDuration : number, downloadLocation : string) : Promise<StockResponse>;
+    downloadVideo(query : string, minDuration : number, downloadLocation : string) : Promise<StockResponse>;
 }
 
 export interface StockResponse {

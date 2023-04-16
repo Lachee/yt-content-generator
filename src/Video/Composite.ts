@@ -48,7 +48,7 @@ export async function compositeNarration(videoInputFile : string, audioFiles : s
 }
 
 export interface ImageTiming { 
-    file : string;
+    fileName : string;
     start : number;
     end : number;
 }
@@ -60,7 +60,7 @@ export async function compositeSlideshow(videoInputFile : string, images : Image
 
         let filters = [];
         images.forEach((timing, i) => {
-            command.input(timing.file);
+            command.input(timing.fileName);
             filters.push(`overlay=enable='between(t,${timing.start.toFixed(2)},${timing.end.toFixed(2)})'`);
         });
 
