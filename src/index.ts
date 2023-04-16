@@ -24,18 +24,18 @@ const PEXELS_KEY = process.env.PEXELS_KEY;
 
     // Step 1, find the best article
     console.log('Fetching article and comments');
-    const articles = (await topArticles('r/askreddit', 'week', 1))
+    const articles = (await topArticles('r/askreddit', 'week', 15))
                         .filter(article => !article.collapsed && !article.over_18);
 
-    const articleIndex = Math.floor(Math.random() * 10);
+    const articleIndex = Math.floor(Math.random() * articles.length);
     const article = articles[articleIndex];
+    console.log(`Article #${articleIndex}`, article);
+
     const allComments = (await topComments(article))
-                        .filter(comment => !comment.collapsed)
+                        .filter(comment => !comment.collapsed && comment.body)
                         .map(comment => replaceLinks(comment.body));
     
     const messages = trimToEstimatedTime([article.title, ...allComments], 50, 12);
-
-    console.log(`Article #${articleIndex}`, article);
 
     console.log('Building video...');
     const videoStartTime = Date.now();
