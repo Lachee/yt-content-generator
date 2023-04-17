@@ -22,7 +22,7 @@ export class PexelProvider implements StockProvider {
             const bestVideo = await this.findBestResult(query, minDuration, invalidIds);
         
             // Iterate over all files provided. If one of them DOESNT fail, then we will use that one.
-            for(let i = 0; i < Math.min(bestVideo.video_files.length, 10); i++)
+            for(let i = 0; i < Math.min(bestVideo.video_files.length, 20); i++)
             {
                 const file = bestVideo.video_files[i];
                 try {
