@@ -17,22 +17,25 @@ export class PexelProvider implements StockProvider {
      */
     async downloadVideo(query : string, minDuration : number, downloadLocation : string) : Promise<StockResponse> {
         // Try at least several times before giving up
+        let invalidIds = [];
         for (let attempt = 0; attempt < 50; attempt++) {
-            let invalidIds = [];
             const bestVideo = await this.findBestResult(query, minDuration, invalidIds);
         
-                // Iterate over all files provided. If one of them DOESNT fail, then we will use that one.
-            for(let file of bestVideo.video_files) {
+            // Iterate over all files provided. If one of them DOESNT fail, then we will use that one.
+            for(let i = 0; i < Math.min(bestVideo.video_files.length, 10); i++)
+            {
+                const file = bestVideo.video_files[i];
                 try {
                     await downloadFile(downloadLocation, { url: file.link,  method: 'GET' });
                     return { fileName: downloadLocation };
-                }catch { 
-                    console.warn('video failed to download:', file.link);
+                } catch(e) { 
+                    console.warn('video failed to download:', bestVideo.id, file.link, e.message);
                 }
             }
             
             // The video we got was invalid, try again
             invalidIds.push(bestVideo.id);
+            console.warn('gave up on stock clip ', bestVideo.id);
         }
 
         // We never returned, so there is no valid video
@@ -64,8 +67,8 @@ export class PexelProvider implements StockProvider {
 
                 // Ensure the video actually exists
                 try { 
-                    const response = await axios.options(video.video_files[0].link);
-                    if (response.status === 200)
+                    //const response = await axios.options(video.video_files[0].link);
+                    //if (response.status === 200)
                         return video;
                 } catch(_) { console.warn('failed to fetch a video because the link is invalid'); }
             }

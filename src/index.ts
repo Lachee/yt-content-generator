@@ -1,17 +1,36 @@
 import DOTENV from 'dotenv';
 import { createGoogleClient } from './Google';
-import { topArticles, topComments } from './Reddit';
+import { Article, topArticles, topComments } from './Reddit';
 import { GoogleProvider } from './TTS/GoogleProvider';
 import { PexelProvider } from './Video/Stock/PexelProvider';
 import { Generator } from './Generator';
+import { readFile, writeFile } from 'fs/promises';
 DOTENV.config();
 
-const OUTPUT = 'output.mp4';
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_CREDENTIAL_PATH = process.env.GOOGLE_CREDENTIAL_PATH || './client_secret.json';
 const GOOGLE_TOKEN_PATH = process.env.GOOGLE_TOKEN_PATH || './client_token.json';
 const GOOGLE_SCOPES = [ 'https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/youtube.readonly' ];
 const PEXELS_KEY = process.env.PEXELS_KEY;
+const HISTORY_FILE = process.env.HISTORY_FILE || './history.txt';
+const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
+
+async function findSuitableArticle() : Promise<Article|null> {
+    let content = '';
+    try { content = (await readFile(HISTORY_FILE)).toString() } catch(e) { console.warn(e); }
+    const records = content.split('\n');
+    const articles = (await topArticles('r/askreddit', 'day', 100))
+        .filter(article => !article.collapsed && !article.over_18);
+
+    for(const article of articles) {
+        if (!records.includes(article.id)) {
+            records.push(article.id);
+            await writeFile(HISTORY_FILE, records.join('\n'));
+            return article;
+        }
+    }
+    return null;
+}
 
 (async () => {   
 
@@ -24,22 +43,22 @@ const PEXELS_KEY = process.env.PEXELS_KEY;
 
     // Step 1, find the best article
     console.log('Fetching article and comments');
-    const articles = (await topArticles('r/askreddit', 'week', 15))
-                        .filter(article => !article.collapsed && !article.over_18);
+    const article = await findSuitableArticle();
+    if (article == null) {
+        console.error('failed to find an article');
+        return false;
+    }
 
-    const articleIndex = Math.floor(Math.random() * articles.length);
-    const article = articles[articleIndex];
-    console.log(`Article #${articleIndex}`, article);
-
-    const allComments = (await topComments(article))
-                        .filter(comment => !comment.collapsed && comment.body)
-                        .map(comment => replaceLinks(comment.body));
+    const outputFile    = `${OUTPUT_DIR}/${article.id}.mp4`;
+    const allComments   = (await topComments(article))
+                            .filter(comment => !comment.collapsed && comment.body)
+                            .map(comment => replaceLinks(comment.body));
     
     const messages = trimToEstimatedTime([article.title, ...allComments], 50, 12);
 
     console.log('Building video...');
     const videoStartTime = Date.now();
-    await generator.createVideo(messages, 60, OUTPUT);
+    await generator.createVideo(messages, 60, outputFile);
     const timeTaken = Date.now() - videoStartTime;
     console.log('Finished building video, took ', timeTaken, 's');
 
