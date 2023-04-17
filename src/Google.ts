@@ -1,3 +1,4 @@
+import { createReadStream } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import { OAuth2Client } from 'google-auth-library';
 import { google, youtube_v3 } from 'googleapis';
@@ -27,7 +28,45 @@ export const VoiceSamples : Voice[] = [
     { languageCode: 'en-US', ssmlGender: 'FEMALE', name: 'en-US-Neural2-E' },
     { languageCode: 'en-US', ssmlGender: 'FEMALE', name: 'en-US-Neural2-F' },
     { languageCode: 'en-US', ssmlGender: 'FEMALE', name: 'en-US-Neural2-G' },
-]
+];
+
+export type YoutubeVisibility = 'private'|'public'|'unlisted';
+const YoutubeCategoryMap = {
+    'Autos & Vehicles' : 2,
+    'Film & Animation' : 1,
+    'Music' : 10,
+    'Pets & Animals' : 15,
+    'Sports' : 17,
+    'Short Movies' : 18,
+    'Travel & Events' : 19,
+    'Gaming' : 20,
+    'Videoblogging' : 21,
+    'People & Blogs' : 22,
+    'Comedy' : 23,
+    'Entertainment' : 24,
+    'News & Politics' : 25,
+    'Howto & Style' : 26,
+    'Education' : 27,
+    'Science & Technology' : 28,
+    'Nonprofits & Activism' : 29,
+    'Movies' : 30,
+    'Anime/Animation' : 31,
+    'Action/Adventure' : 32,
+    'Classics' : 33,
+    'Comedy 2' : 34,
+    'Documentary' : 35,
+    'Drama' : 36,
+    'Family' : 37,
+    'Foreign' : 38,
+    'Horror' : 39,
+    'Sci-Fi/Fantasy' : 40,
+    'Thriller' : 41,
+    'Shorts' : 42,
+    'Shows' : 43,
+    'Trailers' : 44,
+} as const;
+export type YoutubeCategory = keyof typeof YoutubeCategoryMap;
+
 
 /** Authorises with google */
 export async function createGoogleClient(apiKey : string, clientSecretJsonPath : string, tokenCachePath : string, scopes : string[]) : Promise<GoogleClient> { 
@@ -116,5 +155,29 @@ export class GoogleClient {
         });
 
         return Buffer.from(response.data.audioContent, 'base64');
+    }
+
+    async uploadVideo(fileName : string, title : string, description : string, tags : string[], category : number, visbility : YoutubeVisibility) : Promise<void> {
+        const service = google.youtube('v3');
+        await service.videos.insert( {
+            auth: this.client,
+            part: ['snippet', 'status'],
+            requestBody: {
+                snippet: {
+                    title, 
+                    description, 
+                    tags, 
+                    categoryId: category.toString(),
+                    defaultLanguage: 'en',
+                    defaultAudioLanguage: 'en',
+                },
+                status: {
+                    privacyStatus: visbility,
+                }
+            },
+            media: {
+                body: createReadStream(fileName)
+            }
+        });
     }
 }

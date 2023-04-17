@@ -10,10 +10,13 @@ DOTENV.config();
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_CREDENTIAL_PATH = process.env.GOOGLE_CREDENTIAL_PATH || './client_secret.json';
 const GOOGLE_TOKEN_PATH = process.env.GOOGLE_TOKEN_PATH || './client_token.json';
-const GOOGLE_SCOPES = [ 'https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/youtube.readonly' ];
+const GOOGLE_SCOPES = [ 'https://www.googleapis.com/auth/youtube.upload' ];
 const PEXELS_KEY = process.env.PEXELS_KEY;
 const HISTORY_FILE = process.env.HISTORY_FILE || './history.txt';
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
+
+const UPLOAD_VIDEO = true;
+const YOUTUBE_VISIBILITY = 'public';
 
 async function findSuitableArticle() : Promise<Article|null> {
     let content = '';
@@ -34,9 +37,9 @@ async function findSuitableArticle() : Promise<Article|null> {
 
 (async () => {   
 
-    const client = await createGoogleClient(GOOGLE_API_KEY, GOOGLE_CREDENTIAL_PATH, GOOGLE_TOKEN_PATH, GOOGLE_SCOPES);
+    const googleClient = await createGoogleClient(GOOGLE_API_KEY, GOOGLE_CREDENTIAL_PATH, GOOGLE_TOKEN_PATH, GOOGLE_SCOPES);
     const generator = new Generator(
-        new GoogleProvider(client),
+        new GoogleProvider(googleClient),
         new PexelProvider(PEXELS_KEY),
         'temp'
     );
@@ -57,10 +60,20 @@ async function findSuitableArticle() : Promise<Article|null> {
     const messages = trimToEstimatedTime([article.title, ...allComments], 50, 12);
 
     console.log('Building video...');
-    const videoStartTime = Date.now();
+    const genStartTime = Date.now();
     await generator.createVideo(messages, 60, outputFile);
-    const timeTaken = Date.now() - videoStartTime;
-    console.log('Finished building video, took ', timeTaken, 's');
+    const genTimeTaken = Date.now() - genStartTime;
+    console.log('Finished building video, took ', genTimeTaken, 's');
+
+    // Upload to youtube
+    if (UPLOAD_VIDEO) {
+        console.log('Uploading Video...');
+        const uploadStartTime = Date.now();
+        await googleClient.uploadVideo(outputFile, article.title, article.title + ' #shorts #reddit', [ 'shorts', 'reddit' ], 22, YOUTUBE_VISIBILITY);
+        const uploadTimeTaken = Date.now() - uploadStartTime;
+        console.log('Finished uploading video, took ', uploadTimeTaken, 's');
+    }
+
 
     /** Timings so far:
      * 
