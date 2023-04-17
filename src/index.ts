@@ -15,7 +15,7 @@ const PEXELS_KEY = process.env.PEXELS_KEY;
 const HISTORY_FILE = process.env.HISTORY_FILE || './history.txt';
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
 
-const UPLOAD_VIDEO = true;
+const UPLOAD_VIDEO = false;
 const YOUTUBE_VISIBILITY = 'public';
 
 async function findSuitableArticle() : Promise<Article|null> {
