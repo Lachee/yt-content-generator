@@ -10,12 +10,12 @@ DOTENV.config();
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_CREDENTIAL_PATH = process.env.GOOGLE_CREDENTIAL_PATH || './client_secret.json';
 const GOOGLE_TOKEN_PATH = process.env.GOOGLE_TOKEN_PATH || './client_token.json';
-const GOOGLE_SCOPES = [ 'https://www.googleapis.com/auth/youtube.upload' ];
+const GOOGLE_SCOPES = [ 'https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/drive.file' ];
 const PEXELS_KEY = process.env.PEXELS_KEY;
 const HISTORY_FILE = process.env.HISTORY_FILE || './history.txt';
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
 
-const UPLOAD_VIDEO = false;
+const UPLOAD_VIDEO = true;
 const YOUTUBE_VISIBILITY = 'public';
 
 async function findSuitableArticle() : Promise<Article|null> {
@@ -69,7 +69,11 @@ async function findSuitableArticle() : Promise<Article|null> {
     if (UPLOAD_VIDEO) {
         console.log('Uploading Video...');
         const uploadStartTime = Date.now();
-        await googleClient.uploadVideo(outputFile, article.title, article.title + ' #shorts #reddit', [ 'shorts', 'reddit' ], 22, YOUTUBE_VISIBILITY);
+        const title = article.title;
+        const description = '/AskReddit ' + article.title;
+        await googleClient.uploadDriveFile(outputFile, title, description, '1e-aG031sMnmkWoPxmmFM7Us6iNrjOkNR');
+
+        //await googleClient.uploadYoutubeVideo(outputFile, title, description, [ 'shorts', 'reddit' ], 22, YOUTUBE_VISIBILITY);
         const uploadTimeTaken = Date.now() - uploadStartTime;
         console.log('Finished uploading video, took ', uploadTimeTaken, 's');
     }

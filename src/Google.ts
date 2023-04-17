@@ -1,7 +1,7 @@
 import { createReadStream } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import { OAuth2Client } from 'google-auth-library';
-import { google, youtube_v3 } from 'googleapis';
+import { drive_v2, google, youtube_v3 } from 'googleapis';
 import readline from 'readline';
 
 export type Voice = { languageCode: string, ssmlGender: 'MALE' | 'FEMALE', name?: string }
@@ -31,7 +31,7 @@ export const VoiceSamples : Voice[] = [
 ];
 
 export type YoutubeVisibility = 'private'|'public'|'unlisted';
-const YoutubeCategoryMap = {
+export const YoutubeCategories = {
     'Autos & Vehicles' : 2,
     'Film & Animation' : 1,
     'Music' : 10,
@@ -65,7 +65,7 @@ const YoutubeCategoryMap = {
     'Shows' : 43,
     'Trailers' : 44,
 } as const;
-export type YoutubeCategory = keyof typeof YoutubeCategoryMap;
+export type YoutubeCategory = keyof typeof YoutubeCategories;
 
 
 /** Authorises with google */
@@ -157,9 +157,9 @@ export class GoogleClient {
         return Buffer.from(response.data.audioContent, 'base64');
     }
 
-    async uploadVideo(fileName : string, title : string, description : string, tags : string[], category : number, visbility : YoutubeVisibility) : Promise<void> {
+    async uploadYoutubeVideo(fileName : string, title : string, description : string, tags : string[], category : number, visbility : YoutubeVisibility) : Promise<youtube_v3.Schema$Video> {
         const service = google.youtube('v3');
-        await service.videos.insert( {
+        const response = await service.videos.insert( {
             auth: this.client,
             part: ['snippet', 'status'],
             requestBody: {
@@ -179,5 +179,33 @@ export class GoogleClient {
                 body: createReadStream(fileName)
             }
         });
+        return response.data;
+    }
+
+    async uploadDriveFile(fileName : string, title: string, description? : string, folderId? : string) : Promise<drive_v2.Schema$File> {
+        const service = google.drive('v2');
+
+        let parents : drive_v2.Schema$ParentReference[]|null = null;
+        if (folderId != null) {
+            const parentResponse = await service.files.get({
+                auth: this.client,
+                fileId: folderId
+            });
+            parents = [ parentResponse.data ];
+        }
+
+        const response = await service.files.insert({
+            auth: this.client,
+            requestBody: {
+                title: title,
+                description: description,
+                parents: parents
+                
+            },
+            media: {
+                body: createReadStream(fileName)
+            }
+        });
+        return response.data;
     }
 }
