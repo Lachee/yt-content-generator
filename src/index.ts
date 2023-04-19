@@ -30,7 +30,7 @@ const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
     
     const googleClient = await createGoogleClient(GOOGLE_API_KEY, GOOGLE_CREDENTIAL_PATH, GOOGLE_TOKEN_PATH, GOOGLE_SCOPES);
     
-    const uploader : Uploader = null;// new GoogleDriveUploader(googleClient, GOOGLE_FOLDER);
+    const uploader : Uploader = new GoogleDriveUploader(googleClient, GOOGLE_FOLDER);
     const ttsProvider : TTSProvider = new GoogleProvider(googleClient);
     const stockProvider : StockProvider = new PexelProvider(PEXELS_KEY);
     const contentProvider : ContentProvider =  CHATGPT_KEY 
