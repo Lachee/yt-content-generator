@@ -54,7 +54,9 @@ export class RedditProvider implements ContentProvider {
 
 export class VettedRedditProvider extends RedditProvider {
 
-    private api : OpenAIApi;
+    private chatgpt : OpenAIApi;
+
+    maxVetAttempts = 10;
 
     weights = {
         'hate': 0.02,
@@ -68,18 +70,15 @@ export class VettedRedditProvider extends RedditProvider {
 
     constructor(subreddit : string, blacklistFileName : string, key : string) {
         super(subreddit, blacklistFileName);
-        this.api = new OpenAIApi( new Configuration({
+        this.chatgpt = new OpenAIApi( new Configuration({
             apiKey: key
         }));
     }
 
     async findArticle(): Promise<Article|null> {
-        const model = 'moderation';
-        const prompt =  'Respond with Yes or No only. Is the following topic appropriate for kids?';
-
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < this.maxVetAttempts; i++) {
             const article = await super.findArticle();
-            const response = await this.api.createModeration({
+            const response = await this.chatgpt.createModeration({
                 input: article.title,
                 model: 'text-moderation-stable'
             });
