@@ -16,7 +16,7 @@ export class YoutubeUploader implements Uploader
         title : string,
         description : string,
         tags : string[],
-        category : string,
+        category : number,
         isPublic : boolean
     ) : Promise<UploadResponse> {
 

@@ -5,109 +5,53 @@ import { GoogleProvider } from './TTS/GoogleProvider';
 import { PexelProvider } from './Video/Stock/PexelProvider';
 import { Generator } from './Generator';
 import { readFile, writeFile } from 'fs/promises';
+import { ContentProvider } from './Content';
+import { RedditProvider, VettedRedditProvider } from './Content/RedditProvider';
+import { TTSProvider } from './TTS';
+import { StockProvider } from './Video/Stock';
+import { Console } from 'console';
+import { Uploader } from './Upload';
+import { GoogleDriveUploader } from './Upload/GoogleDriveUploader';
 DOTENV.config();
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-const GOOGLE_CREDENTIAL_PATH = process.env.GOOGLE_CREDENTIAL_PATH || './client_secret.json';
-const GOOGLE_TOKEN_PATH = process.env.GOOGLE_TOKEN_PATH || './client_token.json';
-const GOOGLE_SCOPES = [ 'https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/drive.file' ];
-const PEXELS_KEY = process.env.PEXELS_KEY;
-const HISTORY_FILE = process.env.HISTORY_FILE || './history.txt';
+const GOOGLE_API_KEY            = process.env.GOOGLE_API_KEY;
+const GOOGLE_CREDENTIAL_PATH    = process.env.GOOGLE_CREDENTIAL_PATH || './client_secret.json';
+const GOOGLE_TOKEN_PATH         = process.env.GOOGLE_TOKEN_PATH || './client_token.json';
+const GOOGLE_FOLDER             = process.env.GOOGLE_FOLDER || null;
+const GOOGLE_SCOPES             = [ 'https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/drive.file' ];
+const PEXELS_KEY                = process.env.PEXELS_KEY;
+const CHATGPT_KEY               = process.env.CHATGPT_KEY || null;
+
+const HISTORY_FILE = process.env.HISTORY_FILE;
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
 
-const UPLOAD_VIDEO = true;
-const YOUTUBE_VISIBILITY = 'public';
-
-async function findSuitableArticle() : Promise<Article|null> {
-    let content = '';
-    try { content = (await readFile(HISTORY_FILE)).toString() } catch(e) { console.warn(e); }
-    const records = content.split('\n');
-    const articles = (await topArticles('r/askreddit', 'day', 100))
-        .filter(article => !article.collapsed && !article.over_18);
-
-    for(const article of articles) {
-        if (!records.includes(article.id)) {
-            records.push(article.id);
-            await writeFile(HISTORY_FILE, records.join('\n'));
-            return article;
-        }
-    }
-    return null;
-}
 
 (async () => {   
-
-    const googleClient = await createGoogleClient(GOOGLE_API_KEY, GOOGLE_CREDENTIAL_PATH, GOOGLE_TOKEN_PATH, GOOGLE_SCOPES);
-    const generator = new Generator(
-        new GoogleProvider(googleClient),
-        new PexelProvider(PEXELS_KEY),
-        'temp'
-    );
-
-    // Step 1, find the best article
-    console.log('Fetching article and comments');
-    const article = await findSuitableArticle();
-    if (article == null) {
-        console.error('failed to find an article');
-        return false;
-    }
-
-    const outputFile    = `${OUTPUT_DIR}/${article.id}.mp4`;
-    const allComments   = (await topComments(article))
-                            .filter(comment => !comment.collapsed && comment.body)
-                            .map(comment => replaceLinks(comment.body));
     
-    const messages = trimToEstimatedTime([article.title, ...allComments], 50, 12);
+    const googleClient = await createGoogleClient(GOOGLE_API_KEY, GOOGLE_CREDENTIAL_PATH, GOOGLE_TOKEN_PATH, GOOGLE_SCOPES);
+    
+    const uploader : Uploader = null;// new GoogleDriveUploader(googleClient, GOOGLE_FOLDER);
+    const ttsProvider : TTSProvider = new GoogleProvider(googleClient);
+    const stockProvider : StockProvider = new PexelProvider(PEXELS_KEY);
+    const contentProvider : ContentProvider =  CHATGPT_KEY 
+            ? new VettedRedditProvider('r/askreddit', HISTORY_FILE, CHATGPT_KEY)
+            : new RedditProvider('r/askreddit', HISTORY_FILE);
 
-    console.log('Building video...');
-    const genStartTime = Date.now();
-    await generator.createVideo(messages, 60, outputFile);
-    const genTimeTaken = Date.now() - genStartTime;
-    console.log('Finished building video, took ', genTimeTaken, 's');
+        
+    console.log('Finding content...');
+    const content = await contentProvider.find();
+    
+    console.log('Filming ', content.comments[0], '...');
+    const generator = new Generator(ttsProvider, stockProvider, 'temp');
+    const outputFile = `${OUTPUT_DIR}/${content.id}.mp4`;
+    await generator.createVideo(content.comments, 60, outputFile);
 
     // Upload to youtube
-    if (UPLOAD_VIDEO) {
+    if (uploader != null) {
         console.log('Uploading Video...');
-        const uploadStartTime = Date.now();
-        const title = article.title;
-        const description = '/AskReddit ' + article.title;
-        await googleClient.uploadDriveFile(outputFile, title, description, '1e-aG031sMnmkWoPxmmFM7Us6iNrjOkNR');
-
-        //await googleClient.uploadYoutubeVideo(outputFile, title, description, [ 'shorts', 'reddit' ], 22, YOUTUBE_VISIBILITY);
-        const uploadTimeTaken = Date.now() - uploadStartTime;
-        console.log('Finished uploading video, took ', uploadTimeTaken, 's');
+        const title = content.comments[0];
+        const description = '/AskReddit ' + content.comments[0];
+        await uploader.upload(outputFile, title, description, [ '#shorts' ], 22, true);
     }
-
-
-    /** Timings so far:
-     * 
-     * output-a.mp4 @ 69177s:
-     * used 3  /  4 clips generated, chars per minute 346 / 21.36 = 16.198501872659175
-     * 
-     * output-b.mp4 @ 31734
-     * used 4  /  4 clips generated
-     * chars per minute 808 / 49.824 = 16.217084136159283
-     * 
-     * output-c.mp4 @ 52946
-     * used 2  /  2 clips generated
-     * chars per minute 696 / 42.552 = 16.356457980823464
-     */
 })();
 
-function trimToEstimatedTime(comments : string[], duration : number, charPerSecond : number) : string[] {
-    let results = [];
-    let currentDuration = 0;
-    for(const comment of comments) {
-        const estDuration = comment.length * (1 / charPerSecond);
-        if (estDuration + currentDuration > duration) 
-            break;
-
-        results.push(comment);
-        currentDuration += estDuration;
-    }
-    return results;
-}
-
-function replaceLinks(str : string, replace : string = '') : string {
-    return str.replace(/(?:https?|ftp):\/\/[\n\S]+/g, replace);
-}

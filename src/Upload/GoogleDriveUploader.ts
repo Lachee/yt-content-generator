@@ -10,8 +10,9 @@ export class GoogleDriveUploader implements Uploader
     /** Prefered folder to upload into */
     public folderId : string|null;
 
-    constructor(client : GoogleClient) {
+    constructor(client : GoogleClient, folderId? : string) {
         this.client = client;
+        this.folderId = folderId;
     }
 
     async upload(
@@ -19,20 +20,12 @@ export class GoogleDriveUploader implements Uploader
         title : string,
         description : string,
         tags : string[],
-        category : string,
+        category : number,
         isPublic : boolean
     ) : Promise<UploadResponse> {
 
-        const response = await this.client.uploadDriveFile(
-            fileName,
-            title,
-            description,
-            this.folderId
-        );
+        const response = await this.client.uploadDriveFile(fileName,  title,  description,  this.folderId );
 
-        return { 
-            url: response.downloadUrl
-            //...response
-        };
+        return { url: response.downloadUrl };
     }
 }
