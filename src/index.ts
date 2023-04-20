@@ -40,7 +40,7 @@ const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
     console.log('Finding content...');
     
     const content = await contentProvider.find();
-    
+
     console.log('Filming ', content.comments[0], '...');
     const generator = new Generator(ttsProvider, stockProvider, 'temp');
     const outputFile = `${OUTPUT_DIR}/${content.id}.mp4`;
@@ -49,7 +49,10 @@ const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
     // Upload to youtube
     if (uploader != null) {
         console.log('Uploading Video...');
-        const title = content.comments[0];
+        let title = content.comments[0];
+        if (title.length >= 100) 
+            title = title.substring(0, 80).trim() + '...';
+        
         const description = '/AskReddit ' + content.comments[0];
         await uploader.upload(outputFile, title, description, [ '#shorts' ], 22, true);
     }
