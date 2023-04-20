@@ -9,7 +9,7 @@ export class RedditProvider implements ContentProvider {
     blacklistFileName : string;
 
     maxSearchAttempts = 10;
-    averageChacatersPerSecond = 24.1;
+    averageChacatersPerSecond = 17.19;
     maxCommentLength = 230;
 
     constructor(subreddit : string, blacklistFileName : string) {
