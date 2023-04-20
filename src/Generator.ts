@@ -64,6 +64,9 @@ export class Generator {
             console.log('used', slideshows.length, ' / ', comments.length, 'clips generated');
             console.log('chars per minute', totalChars, '/', totalSeconds, '=', totalChars/totalSeconds);
 
+            if (slideshows.length <= 1)
+                throw new Error('Invalid article because there is only 1 slideshow!');
+
             // Download the stock and composite
             const stockFile = `${this.tempDir}/video.mp4`;
             const croppedFile = `${this.tempDir}/cropped.mp4`;

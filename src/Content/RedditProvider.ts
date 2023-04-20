@@ -7,46 +7,63 @@ export class RedditProvider implements ContentProvider {
     
     subreddit : string;
     blacklistFileName : string;
-    
+
+    maxSearchAttempts = 10;
+    averageChacatersPerSecond = 24.1;
+
     constructor(subreddit : string, blacklistFileName : string) {
         this.subreddit = subreddit;
         this.blacklistFileName = blacklistFileName;
     }
 
     async find() : Promise<Content> {
-        const article = await this.findArticle();
-        const allComments   = (await topComments(article))
-                                .filter(comment => !comment.collapsed && comment.body)
-                                .map(comment => replaceLinks(comment.body));
-
-        return {
-            id:         article.id,
-            comments:   trimToTime([article.title, ...allComments], 50, 10)
-        }
-    }
-
-    async findArticle() : Promise<Article|null> {
-        let content = '';
-        
+        // Load the initial blacklist
+        let blacklist : string[] = [];
         if (this.blacklistFileName) {
             try { 
-                content = (await readFile(this.blacklistFileName)).toString() 
+                let content = (await readFile(this.blacklistFileName)).toString() 
+                blacklist = content.split('\n');
             } catch(e) { console.warn(e); }
         }
+        
+        try 
+        {
+            // Find the best article
+            for (let i = 0; i < this.maxSearchAttempts; i++) {
+                const article = await this.findArticle(blacklist);
+                const allComments   = (await topComments(article))
+                                        .filter(comment => !comment.collapsed && comment.body)
+                                        .map(comment => replaceLinks(comment.body));
+                
+                const comments = trimToTime([article.title, ...allComments], 60, this.averageChacatersPerSecond);
+                if (comments.length <= 2) {
+                    blacklist.push(article.id);
+                    continue;
+                }
 
-        const records = content.split('\n');
+                return {
+                    id:         article.id,
+                    comments:   comments
+                }
+            }
+        } 
+        finally 
+        {
+            // Finally write the blacklist back
+            if (this.blacklistFileName)
+                await writeFile(this.blacklistFileName, blacklist.join('\n'));
+        }
+
+        throw Error('No articles managed to fit criteria');
+    }
+
+    protected async findArticle(blacklist : string[]) : Promise<Article|null> {        
         const articles = (await topArticles(this.subreddit, 'day', 100))
             .filter(article => !article.collapsed && !article.over_18);
     
         for(const article of articles) {
-            if (!records.includes(article.id)) {
-                records.push(article.id);
-                
-                if (this.blacklistFileName)
-                    await writeFile(this.blacklistFileName, records.join('\n'));
-
+            if (!blacklist.includes(article.id))  
                 return article;
-            }
         }
         return null;
     }
@@ -75,9 +92,9 @@ export class VettedRedditProvider extends RedditProvider {
         }));
     }
 
-    async findArticle(): Promise<Article|null> {
+    protected async findArticle(blacklist : string[]): Promise<Article|null> {
         for (let i = 0; i < this.maxVetAttempts; i++) {
-            const article = await super.findArticle();
+            const article = await super.findArticle(blacklist);
             const response = await this.chatgpt.createModeration({
                 input: article.title,
                 model: 'text-moderation-stable'

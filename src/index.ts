@@ -33,12 +33,12 @@ const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
     const uploader : Uploader = new GoogleDriveUploader(googleClient, GOOGLE_FOLDER);
     const ttsProvider : TTSProvider = new GoogleProvider(googleClient);
     const stockProvider : StockProvider = new PexelProvider(PEXELS_KEY);
-    const contentProvider : ContentProvider =  CHATGPT_KEY 
+    const contentProvider : RedditProvider =  CHATGPT_KEY 
             ? new VettedRedditProvider('r/askreddit', HISTORY_FILE, CHATGPT_KEY)
             : new RedditProvider('r/askreddit', HISTORY_FILE);
 
-        
     console.log('Finding content...');
+    
     const content = await contentProvider.find();
     
     console.log('Filming ', content.comments[0], '...');
@@ -53,5 +53,7 @@ const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
         const description = '/AskReddit ' + content.comments[0];
         await uploader.upload(outputFile, title, description, [ '#shorts' ], 22, true);
     }
+
+    console.log('done');
 })();
 
