@@ -10,6 +10,7 @@ export class RedditProvider implements ContentProvider {
 
     maxSearchAttempts = 10;
     averageChacatersPerSecond = 24.1;
+    maxCommentLength = 230;
 
     constructor(subreddit : string, blacklistFileName : string) {
         this.subreddit = subreddit;
@@ -32,7 +33,7 @@ export class RedditProvider implements ContentProvider {
             for (let i = 0; i < this.maxSearchAttempts; i++) {
                 const article = await this.findArticle(blacklist);
                 const allComments   = (await topComments(article))
-                                        .filter(comment => !comment.collapsed && comment.body)
+                                        .filter(comment => !comment.collapsed && comment.body && comment.body.length <= this.maxCommentLength)
                                         .map(comment => replaceLinks(comment.body));
                 
                 const comments = trimToTime([article.title, ...allComments], 60, this.averageChacatersPerSecond);
