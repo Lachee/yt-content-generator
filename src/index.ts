@@ -44,7 +44,7 @@ const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
     console.log('Filming ', content.comments[0], '...');
     const generator = new Generator(ttsProvider, stockProvider, 'temp');
     const outputFile = `${OUTPUT_DIR}/${content.id}.mp4`;
-    await generator.createVideo(content.comments, 60, outputFile);
+    await generator.createVideo(content.comments, 55, outputFile);
 
     // Upload to youtube
     if (uploader != null) {

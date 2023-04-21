@@ -36,7 +36,7 @@ export class RedditProvider implements ContentProvider {
                                         .filter(comment => !comment.collapsed && comment.body && comment.body.length <= this.maxCommentLength)
                                         .map(comment => replaceLinks(comment.body));
                 
-                const comments = trimToTime([article.title, ...allComments], 60, this.averageChacatersPerSecond);
+                const comments = trimToTime([article.title, ...allComments], 50, this.averageChacatersPerSecond);
                 if (comments.length <= 2) {
                     blacklist.push(article.id);
                     continue;

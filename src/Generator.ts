@@ -43,7 +43,7 @@ export class Generator {
                 const duration = durations[index];
 
                 // Ensure the clip would fit (with some spacing)
-                if (totalClipDuration + duration >= maxDuration + (slideshows.length * 0.25))
+                if ((totalClipDuration + duration) >= maxDuration)
                     break;
 
                 const img = await this.imageProvider.snapshot('src/public/card.html', { text: comments[index] }, `${this.tempDir}/img-${index}.png`);
